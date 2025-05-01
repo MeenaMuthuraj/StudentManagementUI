@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional styles for react-chatbot-kit */
+
+/* Container holding the chatbot */
+/* .teacher-chatbot-container { ... } */
+
+/* Style the main chatbot wrapper */
+.react-chatbot-kit-chat-container {
+    width: 100%;
+    height: 100%;
+    box-shadow: none; /* Remove default shadow if parent has one */
+    border-radius: inherit; /* Inherit border radius from parent */
+  }
+  
+  /* Style the chat header */
+  .react-chatbot-kit-chat-header {
+    background-color: #4338CA; /* Example: Indigo-700 */
+    color: white;
+    padding: 10px 15px;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  
+  /* Message bubbles */
+  .react-chatbot-kit-chat-bubble {
+    font-size: 0.875rem;
+    padding: 8px 12px;
+  }
+  
+  .react-chatbot-kit-chat-bot-message .react-chatbot-kit-chat-bubble {
+      background-color: #e0e7ff; /* Indigo-100 */
+      color: #3730a3; /* Indigo-800 */
+  }
+  .react-chatbot-kit-user-message .react-chatbot-kit-chat-bubble {
+      background-color: #4f46e5; /* Indigo-600 */
+      color: white;
+  }
+  
+  /* Input area */
+  .react-chatbot-kit-chat-input-form {
+      border-top: 1px solid #e5e7eb; /* Gray-200 */
+  }
+  .react-chatbot-kit-chat-input {
+    font-size: 0.875rem;
+    padding: 10px 15px;
+    border: none;
+    /* border-radius: 0 0 inherit inherit; */
+  }
+  .react-chatbot-kit-chat-btn-send {
+      background-color: #4f46e5; /* Indigo-600 */
+       padding: 6px 10px;
+       margin: 5px;
+       border-radius: 6px;
+   }
+   .react-chatbot-kit-chat-btn-send-icon {
+       color: white;
+        width: 18px;
+       height: 18px;
+    }
+  
+   /* Custom avatar adjustments if needed */
+   .react-chatbot-kit-chat-bot-avatar-container {
+      background-color: #4f46e5; /* Indigo-600 for consistency */
+       width: 32px;
+       height: 32px;
+       padding: 0; /* Adjust if needed */
+       display: flex;
+       align-items: center;
+       justify-content: center;
+   }
+   .react-chatbot-kit-chat-bot-avatar-icon {
+      color: white;
+       width: 18px;
+      height: 18px;
+   }

@@ -1,0 +1,51 @@
+/* Sidebar width transitions */
+.sidebar {
+    transition: all 0.3s ease;
+  }
+  
+  /* Sidebar open and close styles */
+  .sidebar.open {
+    width: 250px; /* Open width */
+  }
+  
+  .sidebar.closed {
+    width: 80px; /* Closed width */
+  }
+  
+  /* Main content adjustment */
+  .main-content {
+    transition: margin-left 0.3s ease;
+  }
+  
+  .main-content.open {
+    margin-left: 250px; /* Sidebar width when open */
+  }
+  
+  .main-content.closed {
+    margin-left: 80px; /* Sidebar width when closed */
+  }
+  
+/* Hide scrollbar in Chrome, Safari, and other WebKit browsers */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 0; /* Hide the scrollbar */
+  height: 0; /* Hide horizontal scrollbar */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Invisible scrollbar track */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent; /* Invisible scrollbar thumb */
+}
+
+/* Firefox */
+.custom-scrollbar {
+  scrollbar-width: none; /* Hide the scrollbar */
+}
+
+/* Ensure smooth scrolling */
+.custom-scrollbar {
+  scroll-behavior: smooth; /* Smooth scrolling effect */
+}
+
