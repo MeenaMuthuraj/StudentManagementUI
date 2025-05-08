@@ -1,3 +1,4 @@
+//src\components\Sidebar.jsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Home, Users, BookOpen, Clipboard, FileText, BarChart, Wallet } from "lucide-react";

@@ -1,3 +1,4 @@
+//src\components\Navbar.jsx
 import { useState } from "react";
 import { FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
