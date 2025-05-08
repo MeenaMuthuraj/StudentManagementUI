@@ -1,3 +1,4 @@
+//src\pages\AuthForm.jsx
 import { useState } from "react";
 import { FaGoogle } from "react-icons/fa";
 import { motion } from "framer-motion";

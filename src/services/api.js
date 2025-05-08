@@ -1,92 +1,102 @@
-// src/services/api.js
 import axios from 'axios';
 
 // Create axios instance with base URL from environment variables
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  // --- REMOVED default Content-Type header from here ---
-  // headers: {
-  //   'Content-Type': 'application/json', // <-- REMOVED THIS LINE
-  // },
+  // Content-Type is handled dynamically by the request interceptor
 });
 
-// Request interceptor to add auth token and handle Content-Type
+// --- Request Interceptor (Handles Auth Token & Content-Type) ---
+// (This part remains unchanged as it looked correct)
 api.interceptors.request.use(
   (config) => {
-    console.log('API Interceptor: Running request...');
+    console.log('API Interceptor: Running request...'); // Debug log
     const token = localStorage.getItem('authToken');
-    // console.log('API Interceptor: Token from localStorage:', token); // Optional: less verbose logging
 
     // Add Authorization header if token exists
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      // console.log('API Interceptor: Setting Authorization header.'); // Optional
     } else {
-      console.log('API Interceptor: No token found, Authorization header not set.');
+      console.log('API Interceptor: No token found.'); // Informative log
     }
 
-    // --- *** IMPORTANT FIX for Content-Type Handling *** ---
-    // Check if the data being sent is an instance of FormData
+    // Dynamically set Content-Type based on data type
     if (config.data instanceof FormData) {
-      // If it's FormData, DELETE any preset Content-Type header.
-      // This allows the browser to correctly set the 'multipart/form-data'
-      // header with the necessary boundary string.
+      // Let the browser set Content-Type for FormData (important for boundaries)
       delete config.headers['Content-Type'];
-      console.log('API Interceptor: Request data is FormData, Content-Type header removed for browser default.');
+      console.log('API Interceptor: Request data is FormData, Content-Type header removed.'); // Debug log
     } else if (config.method === 'post' || config.method === 'put' || config.method === 'patch') {
-      // For other POST, PUT, PATCH requests that are NOT FormData,
-      // explicitly set the Content-Type to application/json.
-      // This ensures your regular JSON data submissions work correctly.
-      // Avoid setting this for GET/DELETE requests as they typically don't have JSON bodies.
+      // Set Content-Type for typical JSON data
       config.headers['Content-Type'] = 'application/json';
-      console.log('API Interceptor: Request data is NOT FormData, ensuring Content-Type is application/json.');
+      console.log('API Interceptor: Request data is not FormData, ensuring Content-Type is application/json.'); // Debug log
     }
-    // -----------------------------------------------------
-
-    // Log the final headers being sent (for debugging)
-    // console.log('API Interceptor: Final request headers:', config.headers);
 
     return config; // Return the modified config
   },
   (error) => {
-    // Handle errors during request setup
+    // Handle errors during the request setup phase
     console.error('API Interceptor Request Setup Error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor to handle global errors like 401 Unauthorized
-// src/services/api.js - Response Interceptor
+// --- Response Interceptor (Handles Response Errors) ---
+// (This is the updated part with enhanced logging)
 api.interceptors.response.use(
   (response) => {
-    return response; // Pass through successful responses
+    // If the request was successful, just pass the response along
+    return response;
   },
   (error) => {
-    console.error('API Interceptor Response Error Status:', error.response?.status); // Log status
-    console.error('API Interceptor Response Error Data:', error.response?.data);   // Log data
+    // --- >>> ENHANCED ERROR LOGGING START <<< ---
+    console.error('--- API Response Interceptor Error Encountered ---');
 
-    // Make sure this condition is EXACTLY checking for 401
-    if (error.response?.status === 401) { // STRICT check for 401
-      console.log('API Interceptor: Unauthorized (401). Clearing token, redirecting...');
-      localStorage.removeItem('authToken');
-      // Redirecting using window.location.href is okay, make sure target is right
-      // Maybe change '/login' to '/AuthForm' if that's your actual path?
-       window.location.href = '/AuthForm'; // Or your correct login path
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('Error Status:', error.response.status);
+      console.error('Error Data:', error.response.data);
+      console.error('Error Headers:', error.response.headers);
+    } else if (error.request) {
+      // The request was made but no response was received
+      // `error.request` is an instance of XMLHttpRequest in the browser
+      // Often indicates a network error, CORS issue (sometimes), or backend not running
+      console.error('Error Request:', error.request);
+      console.error('Network Error: No response received from the server.');
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('Error Message:', error.message);
     }
-    // For ALL other errors (like 500, 400, 404), just reject the promise
+
+    // Log the full error object and config for detailed debugging
+    console.error('Full Error Object:', error);
+    console.error('Request Config:', error.config);
+    console.error('-------------------------------------------------');
+    // --- >>> ENHANCED ERROR LOGGING END <<< ---
+
+    // --- Specific Error Handling (e.g., 401 Unauthorized) ---
+    if (error.response?.status === 401) {
+      console.log('API Interceptor: Unauthorized (401). Clearing token and redirecting to login...');
+      localStorage.removeItem('authToken');
+      // Use window.location for a full redirect, clearing React state
+      window.location.href = '/AuthForm'; // Ensure this is your correct login page path
+      // Avoid further processing after redirect
+      return Promise.reject(new Error("Unauthorized access - Redirecting to login.")); // Reject with a specific message if needed
+    }
+
+    // For ALL other errors, reject the promise so component catch blocks can handle them
     return Promise.reject(error);
   }
 );
+
 // --- Helper Functions (using the configured 'api' instance) ---
+// (These remain unchanged)
 
 export const setAuthToken = (token) => {
   if (token) {
     localStorage.setItem('authToken', token);
-    // You might also want to set the default header here, but the interceptor handles it per-request
-    // api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
     localStorage.removeItem('authToken');
-    // delete api.defaults.headers.common['Authorization'];
   }
 };
 
@@ -94,22 +104,21 @@ export const setAuthToken = (token) => {
 export const get = async (url, params = {}) => {
   try {
     const response = await api.get(url, { params });
-    return response.data; // Return only the data part of the response
+    return response.data;
   } catch (error) {
-    // Re-throw the error so components can catch it, or process specific errors here
-    console.error(`API GET Error (${url}):`, error.response?.data || error.message);
-    throw error; // Re-throwing allows component-level catch blocks
+    // Enhanced logging happens in the interceptor, just re-throw here
+    console.error(`API Helper GET Error (${url}): Handled by interceptor.`);
+    throw error;
   }
 };
 
 // Generic POST request helper
 export const post = async (url, data = {}) => {
   try {
-    // The interceptor handles Content-Type based on 'data' type (JSON or FormData)
     const response = await api.post(url, data);
     return response.data;
   } catch (error) {
-    console.error(`API POST Error (${url}):`, error.response?.data || error.message);
+    console.error(`API Helper POST Error (${url}): Handled by interceptor.`);
     throw error;
   }
 };
@@ -117,11 +126,10 @@ export const post = async (url, data = {}) => {
 // Generic PUT request helper
 export const put = async (url, data = {}) => {
   try {
-    // The interceptor handles Content-Type based on 'data' type
     const response = await api.put(url, data);
     return response.data;
   } catch (error) {
-    console.error(`API PUT Error (${url}):`, error.response?.data || error.message);
+    console.error(`API Helper PUT Error (${url}): Handled by interceptor.`);
     throw error;
   }
 };
@@ -132,28 +140,9 @@ export const del = async (url) => {
     const response = await api.delete(url);
     return response.data;
   } catch (error) {
-    console.error(`API DELETE Error (${url}):`, error.response?.data || error.message);
+    console.error(`API Helper DELETE Error (${url}): Handled by interceptor.`);
     throw error;
   }
 };
-
-// Note: The custom 'upload' function below is now somewhat redundant because
-// the main 'post' function combined with the interceptor handles FormData correctly.
-// You can likely remove this 'upload' helper if your `handleImageUpload` uses `api.post` directly.
-/*
-export const upload = async (url, file, fieldName = 'file') => {
-  console.warn("Using deprecated 'upload' helper. Consider using api.post directly.");
-  try {
-    const formData = new FormData();
-    formData.append(fieldName, file);
-    // api.post will handle headers correctly via the interceptor
-    const response = await api.post(url, formData);
-    return response.data;
-  } catch (error) {
-    console.error(`API Upload Helper Error (${url}):`, error.response?.data || error.message);
-    throw error;
-  }
-};
-*/
 
 export default api; // Export the configured Axios instance
