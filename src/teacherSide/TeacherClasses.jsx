@@ -196,7 +196,7 @@ const TeacherClasses = () => {
             {classes.map((cls) => ( <motion.div key={cls._id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} whileHover={{ y: -4, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",}} className={`bg-white p-5 rounded-xl shadow-md border transition-all cursor-pointer ${ selectedClass?._id === cls._id ? "border-indigo-500 ring-2 ring-indigo-300" : "border-gray-200 hover:border-gray-300"}`} onClick={() => handleSelectClass(cls)} >
                   {/* Card Content (Keep logic) */}
                    <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold text-gray-800 truncate" title={cls.name}>{cls.name}</h3> {/* Consider adding student count: <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{cls.students?.length ?? 0} std</span> */} </div>
-                   <p className="text-xs text-gray-400 mb-5">ID: {cls._id}</p>
+                   {/* <p className="text-xs text-gray-400 mb-5">ID: {cls._id}</p> */}
                    <div className="flex justify-between items-center"> <button onClick={(e) => { e.stopPropagation(); handleSelectClass(cls); }} className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1" > View Students <FiChevronRight size={16} /> </button>
                        <div className="flex gap-1"> <button onClick={(e) => { e.stopPropagation(); openEditModal(cls); }} className="text-gray-400 hover:text-blue-600 p-1.5 rounded-md hover:bg-blue-50 transition" title="Edit Class Name"> <FiEdit2 size={16} /> </button> <button onClick={(e) => { e.stopPropagation(); confirmDeleteClass(cls); }} className="text-gray-400 hover:text-red-600 p-1.5 rounded-md hover:bg-red-50 transition" title="Delete Class"> <FiTrash2 size={16} /> </button> </div>
                   </div>
@@ -226,7 +226,7 @@ const TeacherClasses = () => {
                             {students.map((student) => (
                                 <tr key={student._id} className="hover:bg-gray-50/80 transition duration-150 ease-in-out">
                                      {/* Name Column */}
-                                      <td className="px-6 py-4 whitespace-nowrap"> <div className="text-sm font-semibold text-gray-900">{student.profile?.fullName || `${student.profile?.firstName || ''} ${student.profile?.lastName || ''}`.trim() || student.email || 'N/A'}</div> <div className="text-xs text-gray-500 mt-1">ID: {student._id}</div> </td>
+                                      <td className="px-6 py-4 whitespace-nowrap"> <div className="text-sm font-semibold text-gray-900">{student.profile?.fullName || `${student.profile?.firstName || ''} ${student.profile?.lastName || ''}`.trim() || student.email || 'N/A'}</div> <div className="text-xs text-gray-500 mt-1"></div> </td>
                                       {/* Email Column */}
                                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{student.email || "-"}</td>
                                      {/* Phone Column */}

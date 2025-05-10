@@ -1,127 +1,142 @@
 // src/context/ProfileContext.jsx
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import api from '../services/api'; // Ensure this path is correct
-import defaultAvatar from '../assets/user.jpg'; // Ensure this path is correct
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import api from '../services/api';
+import defaultAvatar from '../assets/user.jpg';
 
-// Helper to get base URL for constructing image paths
 const getBackendBaseUrl = () => {
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
     return apiUrl.replace(/\/api\/?$/, '');
 };
 const backendBaseUrl = getBackendBaseUrl();
 
-// 1. Create the Context
-// Provide an initial default value structure. This helps prevent the "undefined" error
-// if a component accidentally tries to use the context outside the provider,
-// although the goal is always to use it within the provider.
 const ProfileContext = createContext({
     userProfile: null,
     isLoadingProfile: true,
     profileError: null,
-    updateUserProfilePic: () => {}, // No-op default function
-    refreshProfile: () => {},      // No-op default function
-    getFullProfileImageUrl: () => defaultAvatar, // Default function returns default image
+    updateUserProfilePic: () => {},
+    refreshProfile: () => {},
+    getFullProfileImageUrl: () => defaultAvatar,
     isAuthenticated: false,
-    setIsAuthenticated: () => {}, // No-op default function
-    setUserProfile: () => {},       // No-op default function
+    setIsAuthenticated: () => {},
+    setUserProfile: () => {},
 });
 
-// 2. Custom Hook for easy consumption
-export const useProfile = () => useContext(ProfileContext);
+export const useProfile = () => {
+    const context = useContext(ProfileContext);
+    if (context === undefined) {
+        throw new Error('useProfile must be used within a ProfileProvider. Check App.jsx.');
+    }
+    return context;
+};
 
-// 3. Context Provider Component (Manages the actual state)
 export const ProfileProvider = ({ children }) => {
     const [userProfile, setUserProfile] = useState(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [profileError, setProfileError] = useState(null);
-    // Initialize isAuthenticated based on token presence
     const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('authToken'));
 
-    // Memoized function to fetch profile data
+    // --- fetchUserProfile ---
+    // Dependencies: ONLY isAuthenticated.
+    // We don't need `userProfile` as a dependency here because the `if (!forceRefresh && userProfile)`
+    // check uses the *current* `userProfile` from the closure, which is fine.
+    // Removing `userProfile` from this useCallback's dependency array is KEY to breaking the loop.
     const fetchUserProfile = useCallback(async (forceRefresh = false) => {
-        // Only fetch if authenticated AND (profile isn't loaded yet OR forceRefresh is true)
-        const tokenExists = !!localStorage.getItem('authToken'); // Re-check token just in case
-        if (!tokenExists || (!forceRefresh && userProfile)) {
-            setIsLoadingProfile(false);
-            // If not authenticated, ensure profile state is null
-            if (!tokenExists) setUserProfile(null);
+        const tokenExists = !!localStorage.getItem('authToken');
+        if (!tokenExists) {
+            console.log("ProfileContext (fetch): No token. Clearing state.");
+            setUserProfile(null); setProfileError(null); setIsLoadingProfile(false);
+            if (isAuthenticated) setIsAuthenticated(false); // Sync auth state
             return;
         }
 
-        console.log("ProfileContext: Fetching user profile...");
-        setIsLoadingProfile(true);
-        setProfileError(null);
+        // Access userProfile directly from the state here for the check.
+        // This avoids making fetchUserProfile dependent on userProfile changing.
+        if (!forceRefresh && userProfile_ref.current) { // Use a ref for the check
+            console.log("ProfileContext (fetch): Profile exists & no force. Skipping.");
+            setIsLoadingProfile(false);
+            return;
+        }
+
+        console.log("ProfileContext (fetch): Fetching student profile...");
+        setIsLoadingProfile(true); setProfileError(null);
         try {
-            // Assuming '/student/profile' - adjust if needed for different user types later
             const response = await api.get('/student/profile');
-            setUserProfile(response.data);
-            console.log("ProfileContext: Profile loaded.", response.data);
+            setUserProfile(response.data); // This will trigger re-render of consumers
+            console.log("ProfileContext (fetch): Student profile loaded.", response.data);
         } catch (error) {
-            console.error("ProfileContext: Error fetching profile:", error);
-             if (error.response?.status !== 401) { // Don't set error for expected unauthorized redirect
-                setProfileError(error.response?.data?.message || "Failed to load profile data.");
+            console.error("ProfileContext (fetch): Error fetching student profile:", error);
+            if (error.response?.status !== 401) {
+                setProfileError(error.response?.data?.message || "Failed to load profile.");
             }
-            // Optionally clear profile on error, or keep stale data?
-            // setUserProfile(null);
         } finally {
             setIsLoadingProfile(false);
         }
-    }, [isAuthenticated, userProfile]); // Include userProfile to allow re-fetching if it's nullified
+    }, [isAuthenticated]); // Removed userProfile_ref from here, using the ref for the check
 
-    // Effect to fetch profile when isAuthenticated changes
+    // Create a ref to hold the current userProfile for the check inside fetchUserProfile
+    const userProfile_ref = useRef(userProfile);
     useEffect(() => {
-        console.log("ProfileContext: Auth status changed or initial load. IsAuthenticated:", isAuthenticated);
-        if (isAuthenticated) {
-            // Reset profile state before fetching if needed (e.g., after login)
-            // setUserProfile(null); // Optional: uncomment if you want to force fetch on every auth change
-            fetchUserProfile();
-        } else {
-            // Ensure profile is cleared if user becomes unauthenticated
-            setUserProfile(null);
-            setProfileError(null);
-            setIsLoadingProfile(false); // Not loading if not authenticated
-        }
-    }, [isAuthenticated, fetchUserProfile]);
+        userProfile_ref.current = userProfile;
+    }, [userProfile]);
 
-    // --- Context Actions ---
-    const updateUserProfilePic = (newPicPath) => {
+
+    // --- useEffect to call fetchUserProfile ---
+    // Dependencies: ONLY isAuthenticated and the fetchUserProfile function itself.
+    // fetchUserProfile is stable because its dependencies are stable.
+    useEffect(() => {
+        console.log("ProfileContext useEffect[isAuthenticated]: Auth status is", isAuthenticated);
+        if (isAuthenticated) {
+            fetchUserProfile(); // Fetch if authenticated
+        } else {
+            setUserProfile(null); setProfileError(null); setIsLoadingProfile(false);
+        }
+    }, [isAuthenticated, fetchUserProfile]); // fetchUserProfile's identity is stable
+
+    // --- Context Actions (these should be stable) ---
+    const updateUserProfilePic = useCallback((newPicPath) => {
         setUserProfile(prevProfile => {
             if (!prevProfile) return null;
-            return {
-                ...prevProfile,
-                profile: { ...prevProfile.profile, profilePic: newPicPath }
-            };
+            const currentSubProfile = prevProfile.profile || {};
+            return { ...prevProfile, profile: { ...currentSubProfile, profilePic: newPicPath } };
         });
-        console.log("ProfileContext: Updated profilePic path to", newPicPath);
-    };
+    }, []); // Empty dependency array makes this function stable
 
     const refreshProfile = useCallback(() => {
-         console.log("ProfileContext: Refresh triggered.");
-        fetchUserProfile(true); // Force refresh
-    }, [fetchUserProfile]);
+        console.log("ProfileContext: Manual refreshProfile triggered.");
+        fetchUserProfile(true);
+    }, [fetchUserProfile]); // Depends on stable fetchUserProfile
 
-    // Helper to get full image URL
     const getFullProfileImageUrl = useCallback(() => {
-        const profilePicPath = userProfile?.profile?.profilePic;
+        const profilePicPath = userProfile_ref.current?.profile?.profilePic; // Use ref here too
         return profilePicPath ? `${backendBaseUrl}${profilePicPath}` : defaultAvatar;
-    }, [userProfile?.profile?.profilePic]); // Depend only on the specific field
+    }, []); // Re-create only if base URL or avatar changes (unlikely) OR make dependent on userProfile_ref.current?.profile?.profilePic
 
-    // Memoize the context value to prevent unnecessary re-renders of consumers
+    // This effect ensures getFullProfileImageUrl re-memoizes if the specific pic path changes
+    const memoizedGetFullProfileImageUrl = React.useMemo(() => {
+        return () => {
+            const profilePicPath = userProfile?.profile?.profilePic;
+            return profilePicPath ? `${backendBaseUrl}${profilePicPath}` : defaultAvatar;
+        };
+    }, [userProfile?.profile?.profilePic]);
+
+
     const value = React.useMemo(() => ({
         userProfile,
         isLoadingProfile,
         profileError,
         updateUserProfilePic,
         refreshProfile,
-        getFullProfileImageUrl,
+        getFullProfileImageUrl: memoizedGetFullProfileImageUrl, // Use the memoized version
         isAuthenticated,
-        setIsAuthenticated, // Expose setter for login/logout components
-        setUserProfile     // Expose setter for login components
+        setIsAuthenticated,
+        setUserProfile,
     }), [
         userProfile, isLoadingProfile, profileError,
-        updateUserProfilePic, refreshProfile, getFullProfileImageUrl,
+        updateUserProfilePic, refreshProfile, memoizedGetFullProfileImageUrl,
         isAuthenticated, setIsAuthenticated, setUserProfile
-    ]); // Include all provided values in dependency array
+    ]);
+
+    console.log("ProfileProvider rendering. Auth:", value.isAuthenticated, "Profile:", value.userProfile ? "Loaded" : "Null", "Loading:", isLoadingProfile);
 
     return (
         <ProfileContext.Provider value={value}>

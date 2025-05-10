@@ -5,7 +5,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 // Assuming StudentProfileProvider is correct and used for students
 import { ProfileProvider } from "./context/ProfileContext";
 import { TeacherProfileProvider } from "./context/TeacherProfileContext"; // <-- TEACHER Provider Import
-
+/* In App.jsx or index.css */
+import "react-datepicker/dist/react-datepicker.css";
 // --- Import Page/Layout/Component Imports ---
 import Home from "./pages/Home";
 import AuthForm from "./pages/AuthForm";
@@ -25,6 +26,8 @@ import StudentSubjects from "./studentSide/StudentSubjects"; // <-- Import
 import StudentViewQuizzes from "./studentSide/StudentViewQuizzes"; 
 import StudentTakeQuiz from "./studentSide/StudentTakeQuiz"; // <-- NEW COMPONENT TO CREATE
 import StudentQuizResult from "./studentSide/StudentQuizResult"; 
+import StudentAttendance from "./studentSide/StudentAttendance"; // <-- IMPORT
+import StudentGrades from "./studentSide/StudentGrades"; 
 // ... other student imports ...
 
 // --- Teacher Imports ---
@@ -66,7 +69,8 @@ function App() {
           element={
             <ProfileProvider> {/* <<< STUDENT PROVIDER */}
               <Routes>
-                <Route element={<ProtectedRoute allowedUserType="student" />}>
+                <Route element={
+                  <ProtectedRoute allowedUserType="student" />}>
                   <Route element={<StudentLayout />}>
                     <Route index element={<StudentDashboard />} />
                     <Route path="studentDashboard" element={<StudentDashboard />} />
@@ -76,12 +80,14 @@ function App() {
                     <Route path="quizzes" element={<StudentViewQuizzes />} />
                     <Route path="take-quiz/:quizId" element={<StudentTakeQuiz />} /> {/* Taking Quiz */}
                     <Route path="quiz-result/:attemptId" element={<StudentQuizResult />} /> {/* View Result */}
+                    <Route path="StudentAttendance" element={<StudentAttendance />} />
+                    <Route path="StudentGrades" element={<StudentGrades />} />
                     {/* ... other student routes ... */}
                     <Route path="*" element={<NotFound message="Student resource not found" />} />
                   </Route>
                 </Route>
               </Routes>
-            </ProfileProvider>
+              </ProfileProvider>
           }
         />
 

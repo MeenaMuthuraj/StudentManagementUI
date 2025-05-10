@@ -397,7 +397,7 @@ function TeacherMarkAttendance() {
                       <td className="px-4 sm:px-6 py-3 whitespace-nowrap align-middle">
                         {" "}
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {student.profile?.fullName || student.email || "N/A"}
+                          {student.profile?.firstName || student.email || "N/A"}
                         </p>
                       </td>
                       <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-center align-middle">
